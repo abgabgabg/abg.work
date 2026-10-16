@@ -1,0 +1,147 @@
+/* ====== Styles communs (index.html + about.html) ====== */
+html { margin: 0; }
+:root {
+  --volt:  #CEFF00;   /* vert/jaune fluo « volt » */
+  --fond:  var(--volt);   /* accueil : fond volt… */
+  --texte: #000000;       /* …texte noir */
+}
+/* Page About : couleurs inversées (fond noir, texte volt). Activé par <html class="noir"> */
+:root.noir {
+  --fond:  #000000;
+  --texte: var(--volt);
+}
+html {
+  background-color: var(--fond);
+  transition: background-color .5s ease;   /* le fond change de couleur en douceur (durée .5s) */
+}
+body {
+  margin: 0;
+  background: transparent;                 /* le fond est porté par <html>, pour que seul le contenu fasse le fondu */
+  color: var(--texte);
+  font-family: "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Fondu du contenu : apparition à l'arrivée, disparition au départ (le curseur reste visible) */
+body > *:not(.curseur) {
+  animation: entree .5s ease backwards;
+  transition: opacity .35s ease;
+}
+@keyframes entree { from { opacity: 0; } }
+html.sortie body > *:not(.curseur) { opacity: 0; }
+html.vers-noir { background-color: #000000; }
+html.vers-volt { background-color: var(--volt); }
+
+@media (prefers-reduced-motion: reduce) {
+  html, body > *:not(.curseur) { transition: none; animation: none; }
+}
+
+/* Menu du haut */
+nav {
+  position: fixed; top: 0; left: 0; right: 0;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 12px;
+  font-size: 15px; font-weight: 500;
+  text-transform: uppercase;
+  z-index: 5;
+}
+nav a {
+  color: inherit; text-decoration: none;
+  border: 1.5px solid currentColor;      /* épaisseur du contour : 1.5px (mettez 1px ou 2px) */
+  border-radius: 999px;                  /* bouton arrondi */
+  padding: 3px 14px;
+  line-height: 1.2;
+  transition: background-color .3s ease, color .5s ease;
+}
+nav a:hover { background: var(--texte); color: var(--fond); }   /* au survol : le bouton se remplit */
+
+/* ====== Page d'accueil ====== */
+body.accueil { height: 100vh; overflow: hidden; touch-action: none; }
+
+/* Texte principal : gros, centré, très serré (comme la référence) */
+.texte-haut, .texte-bas {
+  position: fixed; left: 12px; right: 12px;
+  margin: 0; text-align: center;
+  font-weight: 700; text-transform: uppercase;
+  letter-spacing: -0.05em;
+  z-index: 1; pointer-events: none;
+  font-size: clamp(1.6rem, 6.8vw, 9rem);   /* même taille pour tout le texte */
+  line-height: .92;
+}
+.texte-haut { top: calc(11vh - 25px); }   /* monté de 25px : changez la valeur 25px */
+.texte-bas  { bottom: 1.5vh; }
+
+#zone { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
+
+.trace {
+  position: absolute;
+  width: 20vw;               /* images verticales : 20 % de la largeur de l'écran (hauteur automatique) */
+  height: auto;
+  --rot: 0deg;
+  transform: translate(-50%, -50%) rotate(var(--rot)) scale(.92);
+  opacity: 0;
+  transition: opacity .25s ease, transform .25s ease;
+}
+/* Images horizontales : plus larges pour avoir une présence comparable aux verticales */
+.trace.paysage { width: 25vw; }   /* images horizontales : 25 % */
+
+.trace.visible { opacity: 1; transform: translate(-50%, -50%) rotate(var(--rot)) scale(1); }
+.trace.sortie  { opacity: 0; transform: translate(-50%, -50%) rotate(var(--rot)) scale(.92); }
+
+/* ====== Page About ====== */
+main.about { padding: 44px 12px 40px; }
+
+.intro {
+  margin: 0 0 36px;
+  font-size: clamp(1.8rem, 4.6vw, 5.2rem);
+  font-weight: 500; line-height: 1.02; letter-spacing: -0.035em;
+}
+.contact {
+  max-width: 30ch;
+  margin: 0 0 64px;
+  font-size: clamp(1.2rem, 2.2vw, 2.2rem);
+  font-weight: 500; line-height: 1.1; letter-spacing: -0.02em;
+}
+.contact a { color: inherit; }
+
+.colonnes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  font-size: 15px; line-height: 1.25;
+  text-transform: uppercase;
+}
+.colonnes h2 { margin: 0 0 20px; font-size: inherit; font-weight: 500; }
+.colonnes ul { list-style: none; margin: 0; padding: 0; }
+.colonnes li { margin-bottom: 4px; }
+.colonnes a { color: inherit; text-decoration: none; }
+.colonnes a:hover { opacity: .5; }
+
+@media (max-width: 900px) { .colonnes { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) {
+  nav { font-size: 12px; }
+  nav a { padding: 2px 8px; }
+  .texte-haut, .texte-bas { font-size: 11.5vw; }   /* gros texte sur mobile (11.5 % de la largeur) */
+  .trace { width: 45vw; }
+  .trace.paysage { width: 65vw; }
+}
+
+/* ====== Curseur emoji qui tourne ====== */
+html.curseur-actif, html.curseur-actif * { cursor: none !important; }
+
+.curseur {
+  position: fixed; left: 0; top: 0; width: 0; height: 0;
+  z-index: 100; pointer-events: none;
+  opacity: 0; transition: opacity .2s;
+}
+.curseur.actif { opacity: 1; }
+.curseur .rond {
+  position: absolute; left: -22px; top: -22px;
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px; line-height: 1;                 /* taille de l'emoji */
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  animation: tourne 3s linear infinite;            /* 3s = un tour ; plus petit = plus rapide */
+  transition: scale .2s;
+}
+.curseur.lien .rond { scale: 1.5; }
+@keyframes tourne { to { rotate: 360deg; } }

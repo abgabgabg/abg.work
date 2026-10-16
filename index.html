@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ABG — Antonin Brault Guilleaume</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="accueil">
+
+<nav>
+  <a href="index.html">ABG</a>   <!-- remplacez par votre logo -->
+  <a href="https://www.linkedin.com/in/antoninbg/" target="_blank" rel="noopener">LinkedIn</a>
+  <a href="https://www.instagram.com/abg.work" target="_blank" rel="noopener">Instagram</a>
+  <a href="about.html">About</a>
+</nav>
+
+<h1 class="texte-haut">Creative Director<br>Sport &amp; Entertainment</h1>
+<p class="texte-bas">ABG.WORK</p>
+
+<div id="zone"></div>
+
+<script>
+/* ============ RÉGLAGES ============ */
+const NB_IMAGES_TOTAL = 60;    // nombre d'images dans la rotation
+const NB_VISIBLES_MAX = 6;     // images affichées en même temps
+const DISTANCE_MIN    = 120;   // distance (px) avant une nouvelle image
+const ROTATION_MAX    = 8;     // inclinaison aléatoire max (0 = aucune)
+const AUTO_MOBILE     = true;  // sur mobile : les images défilent toutes seules
+const INTERVALLE_AUTO = 900;   // délai (ms) entre deux images en mode automatique
+const DOSSIER         = "images/";
+const EXTENSIONS        = ["png", "gif", "jpg", "jpeg", "webp"];  // formats acceptés (testés dans cet ordre)
+/* ================================= */
+
+const zone = document.getElementById("zone");
+const affichees = [];
+let index = 0;
+let dernier = null;
+
+const paysage = {};   // retient quelles images sont horizontales
+const cases = Array(NB_IMAGES_TOTAL).fill(null);   // case n°i = image img(i+1), vide tant qu'elle n'est pas chargée
+
+const nom = (n, ext) => `img${String(n).padStart(2, "0")}.${ext}`;
+
+// Pour chaque numéro (1 à 60), on essaie chaque format ; s'il n'y a aucun fichier, on l'ignore.
+const essayer = (n, k = 0) => new Promise(fin => {
+  if (k >= EXTENSIONS.length) return fin(null);
+  const src = DOSSIER + nom(n, EXTENSIONS[k]);
+  const p = new Image();
+  p.onload  = () => { paysage[src] = p.naturalWidth > p.naturalHeight; fin(src); };
+  p.onerror = () => fin(essayer(n, k + 1));
+  p.src = src;
+});
+
+// Chaque image prend sa place dans la rotation dès qu'elle est chargée (un gros GIF arrive plus tard, sans décaler les autres)
+Promise.all(cases.map((_, i) =>
+  essayer(i + 1).then(src => { cases[i] = src; })
+)).then(() => {
+  const trouvees = cases.filter(Boolean);
+  console.log("Images trouvées (" + trouvees.length + ") :", trouvees.join(", "));   // aide au dépannage
+  // Aucune image trouvée : noms factices pour afficher des blocs de couleur
+  if (!trouvees.length) for (let i = 0; i < 12; i++) cases[i] = DOSSIER + nom(i + 1, "png");
+});
+
+// Renvoie la prochaine image disponible dans l'ordre (img01, img02… puis on recommence)
+function prochaine() {
+  for (let k = 0; k < NB_IMAGES_TOTAL; k++) {
+    const i = (index + k) % NB_IMAGES_TOTAL;
+    if (cases[i]) { index = (i + 1) % NB_IMAGES_TOTAL; return { src: cases[i], i }; }
+  }
+  return null;
+}
+
+function ajouter(x, y) {
+  const choix = prochaine();
+  if (!choix) return;   // aucune image chargée pour l'instant
+  const img = document.createElement("img");
+  img.className = "trace";
+  if (paysage[choix.src]) img.classList.add("paysage");   // image horizontale = plus large
+  img.src = choix.src;
+  img.alt = "";
+  img.style.left = x + "px";
+  img.style.top  = y + "px";
+  img.style.setProperty("--rot", ((Math.random() * 2 - 1) * ROTATION_MAX).toFixed(1) + "deg");
+  img.onerror = () => {   // image introuvable : bloc de couleur (pour les tests)
+    img.removeAttribute("src");
+    img.style.height = "190px";
+    img.style.background = `hsl(${choix.i * 47 % 360} 35% 70%)`;
+  };
+  zone.appendChild(img);
+  requestAnimationFrame(() => img.classList.add("visible"));
+
+  affichees.push(img);
+
+  while (affichees.length > NB_VISIBLES_MAX) {
+    const vieille = affichees.shift();
+    vieille.classList.remove("visible");
+    vieille.classList.add("sortie");
+    setTimeout(() => vieille.remove(), 300);
+  }
+}
+
+function bouger(x, y) {
+  if (!dernier || Math.hypot(x - dernier.x, y - dernier.y) >= DISTANCE_MIN) {
+    ajouter(x, y);
+    dernier = { x, y };
+  }
+}
+
+let pauseJusqua = 0;   // en mode auto, on laisse la main au doigt pendant 2,5 s
+
+window.addEventListener("mousemove", e => bouger(e.clientX, e.clientY));
+
+window.addEventListener("touchstart", e => {          // un tap ajoute une image
+  const t = e.touches[0];
+  pauseJusqua = Date.now() + 2500;
+  ajouter(t.clientX, t.clientY);
+  dernier = { x: t.clientX, y: t.clientY };
+}, { passive: true });
+
+window.addEventListener("touchmove", e => {           // glisser le doigt = traînée
+  const t = e.touches[0];
+  pauseJusqua = Date.now() + 2500;
+  bouger(t.clientX, t.clientY);
+}, { passive: true });
+
+// Mode automatique sur les appareils sans souris (téléphone, tablette)
+if (AUTO_MOBILE && window.matchMedia("(hover: none)").matches) {
+  const auto = () => {
+    if (Date.now() < pauseJusqua) return;
+    const x = window.innerWidth  * (0.2 + Math.random() * 0.6);
+    const y = window.innerHeight * (0.15 + Math.random() * 0.5);  // évite le texte du bas
+    ajouter(x, y);
+  };
+  auto();
+  setInterval(auto, INTERVALLE_AUTO);
+}
+</script>
+<script src="cursor.js"></script>
+<script src="transition.js"></script>
+</body>
+</html>
